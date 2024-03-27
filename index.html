@@ -41,11 +41,41 @@
       background-color: #45a049;
     }
 
+    main {
+      display: flex;
+      flex: 1;
+    }
+
+    #sidebar {
+      width: 200px;
+      background-color: #f2f2f2;
+      padding: 20px;
+    }
+
+    #sidebar ul {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    #sidebar ul li {
+      margin-bottom: 10px;
+    }
+
+    #sidebar ul li a {
+      text-decoration: none;
+      color: #333;
+    }
+
+    #sidebar ul li a:hover {
+      color: #4caf50;
+    }
+
     #mealContainer {
+      flex: 1;
+      padding: 20px;
       display: flex;
       flex-wrap: wrap;
-      justify-content: center;
-      padding: 20px;
+      justify-content: flex-start;
     }
 
     .meal-card {
@@ -129,8 +159,16 @@
     <input type="text" id="searchInput" placeholder="Search for a meal...">
     <button id="searchBtn">Search</button>
   </header>
-  <main id="mealContainer">
+  <main>
+  <div id="sidebar">
+    <h3>Categories</h3>
+    <ul id="categoryList">
+      <!-- Categories will be dynamically added here -->
+    </ul>
+  </div>
+  <div id="mealContainer">
     <!-- Meal cards will be dynamically added here -->
+  </div>
   </main>
 
   <script>
@@ -138,6 +176,34 @@
       const searchInput = document.getElementById('searchInput');
       const searchBtn = document.getElementById('searchBtn');
       const mealContainer = document.getElementById('mealContainer');
+      const categoryList = document.getElementById('categoryList'); // Reference to the category list in the sidebar
+
+      // Function to fetch meal categories from API
+      async function getMealCategories(apiKey) {
+        const response = await fetch(`https://www.themealdb.com/api/json/v1/1/categories.php?key=${apiKey}`);
+        const data = await response.json();
+        return data.categories;
+      }
+
+      // Function to display meal categories in the sidebar
+      function displayCategories(categories) {
+        categoryList.innerHTML = ''; // Clear existing content
+        categories.forEach(category => {
+          const categoryItem = document.createElement('li');
+          const categoryLink = document.createElement('a');
+          categoryLink.textContent = category.strCategory;
+          categoryLink.addEventListener('click', () => getMealsByCategory(category.strCategory));
+          categoryItem.appendChild(categoryLink);
+          categoryList.appendChild(categoryItem);
+        });
+      }
+
+      // Function to fetch meals by category from API
+      async function getMealsByCategory(category, apiKey) {
+        const response = await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?c=${category}&key=${apiKey}`);
+        const data = await response.json();
+        displayMeals(data.meals);
+      }
 
       // Function to fetch random meals from API
       async function getRandomMeals(numberOfMeals, apiKey) {
@@ -195,19 +261,19 @@
         const mealDetailsContainer = document.createElement('div');
         mealDetailsContainer.classList.add('meal-details-container');
         mealDetailsContainer.innerHTML = `
-          <h2>${mealDetails.strMeal}</h2>
-          <img src="${mealDetails.strMealThumb}" alt="${mealDetails.strMeal}">
-          <p>Category: ${mealDetails.strCategory}</p>
-          <p>Area: ${mealDetails.strArea}</p>
-          <h3>Ingredients</h3>
-          <ul>
-            ${getIngredientsList(mealDetails)}
-          </ul>
-          <h3>Instructions</h3>
-          <ul>
-            ${getInstructionsList(mealDetails.strInstructions)}
-          </ul>
-        `;
+                      <h2>${mealDetails.strMeal}</h2>
+                      <img src="${mealDetails.strMealThumb}" alt="${mealDetails.strMeal}">
+                      <p>Category: ${mealDetails.strCategory}</p>
+                      <p>Area: ${mealDetails.strArea}</p>
+                      <h3>Ingredients</h3>
+                      <ul>
+                        ${getIngredientsList(mealDetails)}
+                      </ul>
+                      <h3>Instructions</h3>
+                      <ul>
+                        ${getInstructionsList(mealDetails.strInstructions)}
+                      </ul>
+                    `;
         mealContainer.appendChild(mealDetailsContainer);
       }
 
@@ -258,6 +324,10 @@
       const apiKey = '1'; // Use the test API key for now
       const randomMeals = await getRandomMeals(numberOfRandomMeals, apiKey);
       displayMeals(randomMeals);
+
+      // Fetch meal categories and display in the sidebar when the page loads
+      const categories = await getMealCategories(apiKey);
+      displayCategories(categories);
     });
 
   </script>
