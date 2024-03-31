@@ -86,6 +86,7 @@
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
       cursor: pointer;
       transition: transform 0.3s ease;
+      position: relative;
     }
 
     .meal-card:hover {
@@ -150,6 +151,29 @@
     .meal-details-container ul li {
       margin-bottom: 5px;
     }
+
+    /* New styles for buttons */
+    .add-to-favorites-btn,
+    .remove-from-favorites-btn {
+      background-color: #4caf50;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-top: 10px;
+      display: block;
+    }
+
+    .remove-from-favorites-btn {
+      background-color: #f44336;
+    }
+
+    .add-to-favorites-btn:hover,
+    .remove-from-favorites-btn:hover {
+      opacity: 0.8;
+    }
   </style>
 </head>
 
@@ -158,23 +182,25 @@
     <h1>TheMealDB Recipe Finder</h1>
     <input type="text" id="searchInput" placeholder="Search for a meal...">
     <button id="searchBtn">Search</button>
+    <button id="viewFavoritesBtn">View Favorites</button>
   </header>
   <main>
-  <div id="sidebar">
-    <h3>Categories</h3>
-    <ul id="categoryList">
-      <!-- Categories will be dynamically added here -->
-    </ul>
-  </div>
-  <div id="mealContainer">
-    <!-- Meal cards will be dynamically added here -->
-  </div>
+    <div id="sidebar">
+      <h3>Categories</h3>
+      <ul id="categoryList">
+        <!-- Categories will be dynamically added here -->
+      </ul>
+    </div>
+    <div id="mealContainer">
+      <!-- Meal cards will be dynamically added here -->
+    </div>
   </main>
 
   <script>
     document.addEventListener('DOMContentLoaded', async function () {
       const searchInput = document.getElementById('searchInput');
       const searchBtn = document.getElementById('searchBtn');
+      const viewFavoritesBtn = document.getElementById('viewFavoritesBtn');
       const mealContainer = document.getElementById('mealContainer');
       const categoryList = document.getElementById('categoryList'); // Reference to the category list in the sidebar
 
@@ -197,6 +223,10 @@
           categoryList.appendChild(categoryItem);
         });
       }
+
+      // Fetch meal categories and display in the sidebar when the page loads
+      const categories = await getMealCategories('1'); // Using the test API key for now
+      displayCategories(categories);
 
       // Function to fetch meals by category from API
       async function getMealsByCategory(category, apiKey) {
@@ -274,6 +304,27 @@
                         ${getInstructionsList(mealDetails.strInstructions)}
                       </ul>
                     `;
+
+        // Check if meal is in favorites
+        const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+        if (!favorites.includes(mealDetails.idMeal)) {
+          const addToFavoritesButton = document.createElement('button');
+          addToFavoritesButton.textContent = 'Add to Favorites';
+          addToFavoritesButton.classList.add('add-to-favorites-btn');
+          addToFavoritesButton.onclick = function () {
+            addToFavorites(mealDetails.idMeal);
+          };
+          mealDetailsContainer.appendChild(addToFavoritesButton);
+        } else {
+          const removeFromFavoritesButton = document.createElement('button');
+          removeFromFavoritesButton.textContent = 'Remove from Favorites';
+          removeFromFavoritesButton.classList.add('remove-from-favorites-btn');
+          removeFromFavoritesButton.onclick = function () {
+            removeFromFavorites(mealDetails.idMeal);
+          };
+          mealDetailsContainer.appendChild(removeFromFavoritesButton);
+        }
+
         mealContainer.appendChild(mealDetailsContainer);
       }
 
@@ -309,6 +360,28 @@
         return instructionsList;
       }
 
+      // Function to add meal to favorites list and store in local storage
+      function addToFavorites(mealId) {
+        let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+        if (!favorites.includes(mealId)) {
+          favorites.push(mealId);
+          localStorage.setItem('favorites', JSON.stringify(favorites));
+          alert('Meal added to favorites!');
+        } else {
+          alert('Meal already exists in favorites!');
+        }
+      }
+
+      // Function to remove meal from favorites list and update local storage
+      function removeFromFavorites(mealId) {
+        let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+        favorites = favorites.filter(id => id !== mealId);
+        localStorage.setItem('favorites', JSON.stringify(favorites));
+        alert('Meal removed from favorites!');
+        // Refresh the page to update the UI
+        location.reload();
+      }
+
       // Event listener for search button click
       searchBtn.addEventListener('click', async () => {
         const searchTerm = searchInput.value.trim();
@@ -319,17 +392,25 @@
         }
       });
 
+      // Event listener for view favorites button click
+      viewFavoritesBtn.addEventListener('click', async () => {
+        const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+        if (favorites.length === 0) {
+          alert('No favorites found!');
+        } else {
+          const meals = await Promise.all(favorites.map(id => getMealDetails(id, '1')));
+          displayMeals(meals);
+        }
+      });
+
       // Initial fetch for random meals when the page loads
       const numberOfRandomMeals = 5; // Display 5 random meals
       const apiKey = '1'; // Use the test API key for now
       const randomMeals = await getRandomMeals(numberOfRandomMeals, apiKey);
       displayMeals(randomMeals);
-
-      // Fetch meal categories and display in the sidebar when the page loads
-      const categories = await getMealCategories(apiKey);
-      displayCategories(categories);
     });
 
   </script>
 </body>
+
 </html>
